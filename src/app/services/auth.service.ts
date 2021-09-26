@@ -9,6 +9,8 @@ import { User } from '../models/user';
 })
 export class AuthService {
 
+  currentUser: User;
+
   constructor(private http: HttpClient, private router: Router) { }
 
   register(user: User) {
@@ -20,7 +22,7 @@ export class AuthService {
   }
 
   //JWT Token
-  isLoggedIn(){     
+  isLoggedIn() {     
     const token = localStorage.getItem('token');
     return !!token;
   }

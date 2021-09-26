@@ -8,6 +8,9 @@ import { HttpClientModule } from '@angular/common/http';
 import { AppComponent } from './app.component';
 import { PageNotFoundComponent } from './page-not-found/page-not-found.component';
 
+import { MenubarModule } from 'primeng/menubar';
+import { ButtonModule } from 'primeng/button';
+
 import { HttpInterceptorProviders } from './interceptors';
 
 @NgModule({
@@ -19,7 +22,10 @@ import { HttpInterceptorProviders } from './interceptors';
     BrowserModule,
     BrowserAnimationsModule,
     AppRoutingModule,
-    HttpClientModule
+    HttpClientModule,
+
+    MenubarModule,
+    ButtonModule
   ],
   providers: [HttpInterceptorProviders],
   bootstrap: [AppComponent]

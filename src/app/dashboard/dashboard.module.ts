@@ -1,15 +1,13 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DashboardComponent } from './components/dashboard/dashboard.component';
-import { DashboardRoutingModule } from './dashboard-routing.module';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
-import { AccordionModule } from 'primeng/accordion';
-import { TagModule } from 'primeng/tag';
+import { DashboardRoutingModule } from './dashboard-routing.module';
+
+import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
+import { MenubarModule } from 'primeng/menubar';
 import { DialogModule } from 'primeng/dialog';
-import { InputTextModule } from 'primeng/inputtext';
-import { CalendarModule } from 'primeng/calendar';
 import { MessagesModule } from 'primeng/messages';
 import { MessageModule } from 'primeng/message';
 import { ToastModule } from 'primeng/toast';
@@ -18,8 +16,14 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { StepsModule } from 'primeng/steps';
 import { CardModule } from 'primeng/card';
 import { ScrollPanelModule } from 'primeng/scrollpanel';
+import { InputTextModule } from 'primeng/inputtext';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 
 
+
+
+import { DashboardComponent } from './components/dashboard/dashboard.component';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 
 @NgModule({
@@ -28,17 +32,14 @@ import { ScrollPanelModule } from 'primeng/scrollpanel';
   ],
   imports: [
     CommonModule,
-
     DashboardRoutingModule,
+    TableModule,
+    ButtonModule,
+    TooltipModule,
+    MenubarModule,
     FormsModule,
     ReactiveFormsModule,
-
-    AccordionModule,
-    TagModule,
-    ButtonModule,
     DialogModule,
-    InputTextModule,
-    CalendarModule,
     MessagesModule,
     MessageModule,
     ToastModule,
@@ -46,8 +47,9 @@ import { ScrollPanelModule } from 'primeng/scrollpanel';
     ConfirmDialogModule,
     StepsModule,
     CardModule,
-    ScrollPanelModule
-
+    ScrollPanelModule,
+    InputTextModule,
+    ProgressSpinnerModule
   ]
 })
 export class DashboardModule { }

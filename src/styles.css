@@ -2,7 +2,7 @@
 body {
     margin: 0;
     padding: 0;
-    background-image: url(assets/stadium.jpg);
+    background-image: url(assets/compound.jpg);
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
@@ -13,8 +13,8 @@ body {
 .form {
   padding: 30px;
   border-radius: 10px;
-  border: 2px groove wheat;
-  background-color: rgb(40, 107, 74);
+  border: 2px solid wheat;
+  background-color: rgb(35, 108, 110);
   
 }
 

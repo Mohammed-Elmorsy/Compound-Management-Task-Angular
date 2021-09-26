@@ -1,5 +1,6 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
@@ -9,14 +10,14 @@ import { AuthService } from 'src/app/services/auth.service';
 })
 export class RegisterComponent implements OnInit {
   // ------------------------------------------- constructor -----------------------------------------------
-  constructor(fb: FormBuilder, private auth: AuthService) {
+  constructor(fb: FormBuilder, private auth: AuthService, private router: Router) {
     this.registerForm = fb.group({
       userName : [null, [Validators.required, Validators.minLength(2), Validators.maxLength(20)]],
       password : [null , [Validators.required, Validators.minLength(2), Validators.maxLength(20)]],
       firstName: [''],
       lastName : [''],
       email    : ['' , [Validators.required, Validators.email]],
-      role     : [1]
+      role     : [2]
     });
    }
   // --------------------------------------------- fields --------------------------------------------------
@@ -41,6 +42,7 @@ export class RegisterComponent implements OnInit {
     result => {
       console.log('result', result);
       alert('registered successfully');
+      this.router.navigate(['auth/login']);
     },
     error => {
       console.log('error', error);

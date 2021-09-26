@@ -1,69 +1,151 @@
 import { Component, OnInit } from '@angular/core';
-import { FormArray, FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ConfirmationService, MenuItem, Message, MessageService, PrimeNGConfig } from 'primeng/api';
-import { Player } from 'src/app/models/player';
-import { Team } from 'src/app/models/team';
+import { ConfirmationService, MenuItem, MessageService, PrimeNGConfig } from 'primeng/api';
+import { Visit } from 'src/app/models/visit';
+import { Visitor } from 'src/app/models/visitor';
 import { AuthService } from 'src/app/services/auth.service';
-import { PlayerService } from 'src/app/services/player.service';
-import { TeamService } from 'src/app/services/team.service';
+import { VisitService } from 'src/app/services/visit.service';
 
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
-  providers: [MessageService, ConfirmationService]
+  providers: [ MessageService, ConfirmationService ]
+
 })
 export class DashboardComponent implements OnInit {
-  // -------------------------------------------------- constructor --------------------------------------------------
-  constructor(private fb: FormBuilder, private teamsService: TeamService,
-              private auth: AuthService, private router: Router, private messageService: MessageService,
-              private primengConfig: PrimeNGConfig, private playerService: PlayerService,
-              private confirmationService: ConfirmationService) {
-                this.role = this.auth.getUserPayLoad().role;
-                if (this.role === 'Admin') this.isAdmin = true;
-                else this.isAdmin = false;
-   }
-  // ----------------------------------------------------- fields ----------------------------------------------------
-  teams: Team[] = [];
-  items: MenuItem[];
-  role: any;
-  isAdmin: boolean = false;
-  msgs: Message[] = [];
-  displayEditTeam: boolean = false;
-  displayEditPlayer: boolean = false;
-  displayAddTeamWithPlayers: boolean = false;
-  playerTeamId: number = -1;
-  teamForm: FormGroup;  
-  playerForm: FormGroup; 
-  teamWithPlayersForm: FormGroup;
 
-  get teamName(): FormControl {
-      return this.teamForm.get('name') as FormControl;
-  }
-  get playerName(): FormControl{
-    return this.playerForm.get('name') as FormControl; 
-  }
-  get nameOfTeam(): FormControl{
-    return this.teamWithPlayersForm.get('teamName') as FormControl;
-  }
-  get nameOfPlayer(): FormControl {
-    return this.teamWithPlayersForm.get('playerName') as FormControl;
-  }
-  get teamPlayers(): FormArray{
-    return this.teamWithPlayersForm.get('players') as FormArray;
-  }
-  // ----------------------------------------------- life cycle hooks ------------------------------------------------
+
+  visits: Visit[] = [];
+
+  role = this.auth.getUserPayLoad().role;
+  items: MenuItem[] = [];
+  displayAddVisit: boolean = false;
+  visitsLoading: boolean = true;
+  visitForm: FormGroup;
+  visitorForm: FormGroup;
+  
+  constructor(public auth: AuthService, private router: Router
+              , private formBuilder: FormBuilder, private visitService: VisitService,
+              private messageService: MessageService,
+              private primengConfig: PrimeNGConfig,
+              private confirmationService: ConfirmationService) { }
+
   ngOnInit(): void {
     this.primengConfig.ripple = true;
 
-    this.teamsService.getAllTeams().subscribe( result => {
-      this.teams = result;
+    if (this.role === 'Admin') {
+      this.visitService.getAllVisits().subscribe(
+        res => {
+          this.visits = res;
+          this.visitsLoading = false;
+        },
+        err => {
+          alert('error loading visits');
+        }
+      )
+    }
+
+    if (this.role === 'Owner') {
+      let userId = this.auth.getUserPayLoad().id;
+      this.visitService.getUserVisits(userId).subscribe(
+        res => {
+          this.visits = res;
+          this.visitsLoading = false;
+        },
+        err => {
+          alert('error loading visits');
+        }
+      )
+    }
+  }
+
+  showAddVisitDialog() {
+    this.displayAddVisit = true;
+    this.createVisitForm();
+  }
+
+  createVisitForm() {
+    this.visitForm = this.formBuilder.group({
+      number: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
+      type: [''],
+      carPlateNumber: [''],
+      date: [''],
+      status: [this.getVisitStatus()],
+      visitor: this.formBuilder.group({
+        name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
+        email: ['', [Validators.required]],
+        phone: [''],
+      })
     })
   }
-  // --------------------------------------------------- methods -----------------------------------------------------
-  trackById(index: number, obj: any) {
-    return obj.id;
+
+
+  getVisitStatus(): string {
+    return this.role === 'Admin' ? 'confirmed' : 'pending';
+  }
+
+  addVisit() {
+    console.log('visit form ', this.visitForm.value);
+    let newVisit: Visit = { ...this.visitForm.value, userId: +this.auth.getUserPayLoad().id, userFullName: this.auth.getUserPayLoad().name};
+    console.log('newVisit', newVisit);
+
+    this.visitService.addVisit(newVisit).subscribe(
+      (res: Visit) => {
+        this.visits.push(res);
+        this.messageService.add({key: 'visitAdded', severity:'success', summary: 'Added', detail: 'Successfully added the visit'});
+        this.displayAddVisit = false;
+        if (this.role === 'Admin') this.sendEmailToVisitor(res.visitor);
+      },
+      err => {
+        console.log('errr', err);
+        this.messageService.add({key: 'visitAddFailed', severity:'error', summary: 'Failed', detail: 'Failed to add the visit'});
+        this.displayAddVisit = false;
+      }
+    );
+  }
+
+  confirmVisit(visit: Visit) {
+    visit.status = 'confirmed';
+    console.log('visit', visit);
+    this.visitService.updateVisit(visit).subscribe(
+      (res: Visit) => {
+        this.messageService.add({key: 'visitUpdated', severity:'success', summary: 'Updated', detail: 'Successfully updated visit status'});
+        this.displayAddVisit = false;
+        this.sendEmailToVisitor(res.visitor);
+      },
+      err => {
+        this.messageService.add({key: 'visitUpdateFailed', severity:'error', summary: 'Updated', detail: 'Failed to update visit status'});
+        this.displayAddVisit = false;
+      }
+    )
+  }
+
+  cancelVisit(visit) {
+    visit.status = 'rejected';
+    this.visitService.updateVisit(visit).subscribe(
+      res => {
+        this.messageService.add({key: 'visitUpdated', severity:'success', summary: 'Updated', detail: 'Successfully updated visit status'});
+        this.displayAddVisit = false;
+      },
+      err => {
+        this.messageService.add({key: 'visitUpdateFailed', severity:'error', summary: 'Updated', detail: 'Failed to update visit status'});
+        this.displayAddVisit = false;
+      }
+    )
+  }
+
+  sendEmailToVisitor(visitor: Visitor) {
+    this.visitService.sendEmailToVisitor(visitor).subscribe(
+      res => {
+        alert('email was sent');
+        //this.messageService.add({key: 'visitUpdated', severity:'success', summary: 'Updated', detail: 'Successfully updated visit status'});
+      },
+      err => {
+        alert('email was not sent');
+      }
+    )
   }
 
   logout(){
@@ -79,154 +161,5 @@ export class DashboardComponent implements OnInit {
       })
 
   }
-
-  showTeamEditDialog(team: Team){
-    this.displayEditTeam = true;
-    this.createTeamForm(team);
-  }
-
-  showPlayerEditDialog(player: Player, teamId: any){
-    this.displayEditPlayer = true;
-    this.playerTeamId = teamId;
-    this.createPlayerForm(player);
-  }
-
-  showAddTeamWithPlayersDialog(){
-    this.displayAddTeamWithPlayers = true;
-    this.createTeamWithPlayersForm();
-  }
-
-  createTeamForm(team: Team) {
-    this.teamForm = this.fb.group({
-      id : [team.id],
-      name: [team.name, [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-      country: [team.country, [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-      foundationDate: [team.foundationDate],
-      coachName: [team.coachName, [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-      logoImageName: ['placeholder.png']
-    })
-  }
-
-  createPlayerForm(player: Player) {
-    this.playerForm = this.fb.group({
-      id : [player.id],
-      name: [player.name, [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-      nationality: [player.nationality, [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-      dateOfBirth: [player.dateOfBirth],
-      imageName: ['placeholder.png']
-    })
-  }
-
-  makePlayerForm(): FormGroup {
-    return this.playerForm = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-      nationality: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-      dateOfBirth: [''],
-      imageName: ['']
-    })
-  }
-
-  createTeamWithPlayersForm() {
-    this.teamWithPlayersForm = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-      country: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-      foundationDate: [''],
-      coachName: [''],
-      logoImageName: ['placeholder.png'],
-      players : this.fb.array([
-        this.makePlayerForm()
-      ])
-
-    })
-  }
-
-  addNewPlayer() {
-    this.teamPlayers.push(this.makePlayerForm());
-  }
-
-  removePlayer(i) {
-    this.teamPlayers.removeAt(i);
-  }
-
-  addTeam() {
-    console.log('teamWithPlayersForm', this.teamWithPlayersForm.value);
-    this.teamsService.addTeam(this.teamWithPlayersForm.value).subscribe(
-      res => {
-        console.log('res succeeded', res);
-      },
-      err => {
-        console.log('errrrr', err);
-      }
-    )
-  }
-
-  updateTeam() {
-    console.log('teamToChange', this.teamForm.value);
-    this.teamsService.updateTeam(this.teamForm.value).subscribe(
-      res => {
-        console.log('res', res);
-        //alert('updated successfully');
-        let index = this.teams.findIndex(team => team.id === this.teamForm.value.id);
-        let players = this.teams[index].players;
-        this.teams[index] = { ...this.teamForm.value, players };
-        this.messageService.add({key: 'team', severity:'success', summary: 'Updated', detail: 'Successfully updated team info'});
-        this.displayEditTeam = false;
-      },
-      err => {
-        console.log('err', err);
-        alert('updated failed');
-      });
-  }
-
-  updatePlayer() {
-    this.playerService.updatePlayer(this.playerForm.value).subscribe(
-      res => {
-        console.log('res2', res);
-        //alert('updated successfully');
-        let teamIndex = this.teams.findIndex(team => team.id === this.playerTeamId);
-        if (teamIndex > -1) {
-          let playerIndex = this.teams[teamIndex].players?.findIndex(player => player.id === this.playerForm.value.id);
-          if (playerIndex > -1){
-            this.teams[teamIndex].players[playerIndex] = this.playerForm.value;
-          }
-        }
-
-        this.messageService.add({key: 'player', severity:'success', summary: 'Updated', detail: 'Successfully updated player info'});
-        this.displayEditPlayer = false;
-      },
-      err => {
-        console.log('err2', err);
-        alert('updated failed');
-      });
-  }
-
-
-  confirmDeletePlayer(playerId: number, teamId: number) {
-    this.confirmationService.confirm({
-        message: 'Are you sure you want to delete?',
-        header: 'Delete Confirmation',
-        icon: 'pi pi-danger-circle',
-        accept: () => {
-            this.playerService.deletePlayer(playerId).subscribe( res =>{
-              let teamIndex = this.teams.findIndex(team => team.id === teamId);
-              if (teamIndex > -1) {
-                console.log('teamIndex', teamIndex);
-
-                let playerIndex = this.teams[teamIndex].players?.findIndex(player => player.id === playerId);
-                if (playerIndex > -1){
-                  console.log('playerIndex', playerIndex);
-                  this.teams[teamIndex].players.splice(playerIndex, 1);
-                }
-              }
-              this.msgs = [{severity: 'info', summary:'Confirmed', detail:'Deleted'}];
-            });
-        },
-        reject: () => {
-            this.msgs = [{severity:'info', summary:'Rejected', detail:'Error on delete'}];
-        }
-    });
-  }
-
-  // --------------------------------------- UI Methods -----------------------------------------------
 
 }

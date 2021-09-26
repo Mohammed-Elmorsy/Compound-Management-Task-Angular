@@ -36,6 +36,7 @@ export class LoginComponent implements OnInit {
     this.auth.login(this.loginForm.value).subscribe( 
     result => {
       console.log('result', result);
+      this.auth.currentUser = result;
       //alert('logined successfully');
       localStorage.setItem('token', result.token);
       this.router.navigate(['dashboard']);

@@ -19,7 +19,7 @@ export class DashboardGuard implements CanActivate {
     let role = this.auth.getUserPayLoad().role;
     console.log('role', role);
 
-    if (this.auth.isLoggedIn() && (role === 'User' || role === 'Admin')) {
+    if (this.auth.isLoggedIn() && (role === 'Owner' || role === 'Admin')) {
       let canAccess = new Subject<boolean>();
       return this.auth.validateToken().pipe(
         map(response => {

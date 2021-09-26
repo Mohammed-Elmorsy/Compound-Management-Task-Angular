@@ -1,8 +1,14 @@
-i:hover {
-    cursor: pointer;
+tr th, tr td {
+    text-align: center;
 }
 
-.custom-height {
-    height: 100px !important;
-    width: 100px !important;
+header {
+    height: 48px;
+    padding: 10px;
+    padding-top: 15px;
+}
+
+#empty {
+    background-color: blanchedalmond;
+    border-radius: 10px;
 }
